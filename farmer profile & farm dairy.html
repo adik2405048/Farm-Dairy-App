@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmer Profile & Farm Diary</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fee7; /* Tailwind's lime-50 */
+        }
+        .card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        /* Custom scrollbar for diary log */
+        #diary-log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        #diary-log-container::-webkit-scrollbar-track {
+            background: #e2e8f0;
+        }
+        #diary-log-container::-webkit-scrollbar-thumb {
+            background-color: #4d7c0f; /* lime-700 */
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Header -->
+    <header class="bg-lime-800 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold"><i class="fas fa-book-open mr-2"></i>Farm Diary</h1>
+            <div id="user-info" class="text-sm">
+                <!-- User ID will be shown here -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Left Column: Profile & Entry Form -->
+            <div class="lg:col-span-1 space-y-8">
+                <!-- Dashboard Summary -->
+                <section class="card bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold mb-4 text-center">Profit/Loss Summary</h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-green-100 rounded-md">
+                            <span class="font-semibold text-green-800">Total Income:</span>
+                            <span id="total-income" class="font-bold text-lg text-green-800">0 BDT</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-red-100 rounded-md">
+                            <span class="font-semibold text-red-800">Total Expenses:</span>
+                            <span id="total-expenses" class="font-bold text-lg text-red-800">0 BDT</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-gray-800 text-white rounded-md">
+                            <span class="font-bold text-lg">Net Profit:</span>
+                            <span id="net-profit" class="font-extrabold text-xl">0 BDT</span>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <canvas id="profit-loss-chart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Entry Form -->
+                <section class="card bg-white p-6 rounded-lg shadow-md sticky top-8">
+                    <h2 class="text-xl font-bold mb-4">Add New Entry</h2>
+                    <form id="diary-form" class="space-y-4">
+                        <div>
+                            <label for="entry-type" class="block text-sm font-medium text-gray-700">Entry Type</label>
+                            <select id="entry-type" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500">
+                                <option value="sowing">Sowing / Planting</option>
+                                <option value="expense">Expense</option>
+                                <option value="harvest">Harvest / Yield</option>
+                            </select>
+                        </div>
+
+                        <input type="date" id="entry-date" class="w-full p-2 border rounded-md" required>
+
+                        <!-- Fields for Sowing -->
+                        <div id="sowing-fields">
+                            <input type="text" id="sowing-crop" placeholder="Crop Name (e.g., Boro Rice)" class="w-full p-2 border rounded-md">
+                            <div class="flex gap-2 mt-2">
+                                <input type="number" id="sowing-area" placeholder="Area" class="w-2/3 p-2 border rounded-md">
+                                <select id="sowing-unit" class="w-1/3 p-2 border rounded-md">
+                                    <option>Acre</option><option>Bigha</option><option>Decimal</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Fields for Expense -->
+                        <div id="expense-fields" class="hidden">
+                            <input type="text" id="expense-desc" placeholder="Expense (e.g., Fertilizer)" class="w-full p-2 border rounded-md">
+                            <input type="number" id="expense-amount" placeholder="Amount (BDT)" class="w-full p-2 border rounded-md mt-2">
+                        </div>
+
+                        <!-- Fields for Harvest -->
+                        <div id="harvest-fields" class="hidden">
+                            <input type="text" id="harvest-crop" placeholder="Crop Name (e.g., Boro Rice)" class="w-full p-2 border rounded-md">
+                            <div class="flex gap-2 mt-2">
+                                <input type="number" id="harvest-qty" placeholder="Quantity" class="w-2/3 p-2 border rounded-md">
+                                <select id="harvest-unit" class="w-1/3 p-2 border rounded-md">
+                                    <option>kg</option><option>Ton</option><option>Mon</option>
+                                </select>
+                            </div>
+                             <input type="number" id="harvest-income" placeholder="Total Sale Price (BDT)" class="w-full p-2 border rounded-md mt-2">
+                        </div>
+
+                        <button type="submit" class="w-full bg-lime-600 text-white font-bold py-3 rounded-md hover:bg-lime-700 transition text-lg">
+                            <i class="fas fa-plus-circle mr-2"></i>Add to Diary
+                        </button>
+                    </form>
+                </section>
+            </div>
+
+            <!-- Right Column: Diary Log -->
+            <div class="lg:col-span-2">
+                <h2 class="text-2xl font-bold mb-4">My Farm Diary</h2>
+                <div id="diary-log-container" class="bg-white p-4 rounded-lg shadow-inner h-[80vh] overflow-y-auto">
+                    <div id="diary-log" class="space-y-4">
+                        <!-- Diary entries will be loaded here -->
+                        <div id="loading-spinner" class="text-center py-10">
+                            <i class="fas fa-spinner fa-spin fa-3x text-lime-600"></i>
+                            <p class="mt-2 text-gray-500">Connecting to your diary...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        // --- Firebase SDKs ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "AIza...", authDomain: "...", projectId: "..." };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- Initialize Firebase ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentUserId = null;
+        let profitLossChart = null;
+
+        // --- DOM Elements ---
+        const entryTypeSelect = document.getElementById('entry-type');
+        const formGroups = {
+            sowing: document.getElementById('sowing-fields'),
+            expense: document.getElementById('expense-fields'),
+            harvest: document.getElementById('harvest-fields')
+        };
+        const diaryForm = document.getElementById('diary-form');
+        const diaryLog = document.getElementById('diary-log');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const totalIncomeEl = document.getElementById('total-income');
+        const totalExpensesEl = document.getElementById('total-expenses');
+        const netProfitEl = document.getElementById('net-profit');
+
+        // --- Authentication ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                document.getElementById('user-info').innerHTML = `<i class="fas fa-user-circle mr-2"></i>Farmer ID: <span class="font-mono">${user.uid.substring(0,8)}...</span>`;
+                listenForDiaryEntries();
+            } else {
+                const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (authToken) {
+                    signInWithCustomToken(auth, authToken).catch(e => console.error("Token sign-in failed:", e));
+                } else {
+                    signInAnonymously(auth).catch(e => console.error("Anonymous sign-in failed:", e));
+                }
+            }
+        });
+
+        // --- UI Logic ---
+        entryTypeSelect.addEventListener('change', (e) => {
+            Object.values(formGroups).forEach(group => group.classList.add('hidden'));
+            formGroups[e.target.value].classList.remove('hidden');
+        });
+        
+        // Set default date to today
+        document.getElementById('entry-date').valueAsDate = new Date();
+
+        // --- Firestore Logic ---
+        diaryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUserId) return alert("Authentication not ready. Please wait.");
+
+            const type = entryTypeSelect.value;
+            const date = document.getElementById('entry-date').value;
+            let entryData = {
+                type,
+                date,
+                createdAt: serverTimestamp()
+            };
+
+            // Populate data based on type
+            if (type === 'sowing') {
+                entryData.description = document.getElementById('sowing-crop').value;
+                entryData.area = parseFloat(document.getElementById('sowing-area').value) || 0;
+                entryData.unit = document.getElementById('sowing-unit').value;
+                if (!entryData.description || entryData.area <= 0) return alert('Please fill all sowing fields.');
+            } else if (type === 'expense') {
+                entryData.description = document.getElementById('expense-desc').value;
+                entryData.amount = parseFloat(document.getElementById('expense-amount').value) || 0;
+                if (!entryData.description || entryData.amount <= 0) return alert('Please fill all expense fields.');
+            } else if (type === 'harvest') {
+                entryData.description = document.getElementById('harvest-crop').value;
+                entryData.quantity = parseFloat(document.getElementById('harvest-qty').value) || 0;
+                entryData.unit = document.getElementById('harvest-unit').value;
+                entryData.amount = parseFloat(document.getElementById('harvest-income').value) || 0;
+                 if (!entryData.description || entryData.amount <= 0) return alert('Please fill all harvest fields.');
+            }
+
+            try {
+                const collectionPath = `artifacts/${appId}/users/${currentUserId}/farm_diary_entries`;
+                await addDoc(collection(db, collectionPath), entryData);
+                diaryForm.reset();
+                document.getElementById('entry-date').valueAsDate = new Date();
+                // Reset select to default
+                entryTypeSelect.dispatchEvent(new Event('change'));
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                alert("Failed to save entry. Check console for details.");
+            }
+        });
+
+        function listenForDiaryEntries() {
+            if (!currentUserId) return;
+            const collectionPath = `artifacts/${appId}/users/${currentUserId}/farm_diary_entries`;
+            const q = query(collection(db, collectionPath), orderBy('date', 'desc'));
+
+            onSnapshot(q, (snapshot) => {
+                loadingSpinner.style.display = 'none';
+                if (snapshot.empty) {
+                    diaryLog.innerHTML = `<div class="text-center text-gray-500 p-8"><i class="fas fa-leaf fa-2x mb-2"></i><p>Your diary is empty. Add your first entry!</p></div>`;
+                    updateDashboard(0, 0);
+                    return;
+                }
+                
+                diaryLog.innerHTML = '';
+                let totalIncome = 0;
+                let totalExpenses = 0;
+
+                snapshot.forEach(doc => {
+                    const entry = doc.data();
+                    if (entry.type === 'harvest') totalIncome += entry.amount;
+                    if (entry.type === 'expense') totalExpenses += entry.amount;
+                    renderEntryCard(doc.id, entry);
+                });
+
+                updateDashboard(totalIncome, totalExpenses);
+            }, (error) => {
+                console.error("Error fetching diary: ", error);
+                loadingSpinner.innerHTML = `<p class="text-red-500">Could not load diary. Check permissions.</p>`;
+            });
+        }
+        
+        async function deleteEntry(id) {
+            if(!currentUserId || !id) return;
+            if (confirm('Are you sure you want to delete this entry?')) {
+                try {
+                    const docPath = `artifacts/${appId}/users/${currentUserId}/farm_diary_entries/${id}`;
+                    await deleteDoc(doc(db, docPath));
+                } catch(error) {
+                    console.error("Error deleting document:", error);
+                    alert("Could not delete entry.");
+                }
+            }
+        }
+        
+        window.deleteEntry = deleteEntry; // Make it accessible from HTML onclick
+
+        // --- Rendering Functions ---
+        function renderEntryCard(id, entry) {
+            const card = document.createElement('div');
+            let icon, title, details, amountDisplay = '';
+
+            const colors = {
+                sowing: 'border-blue-500',
+                expense: 'border-red-500',
+                harvest: 'border-green-500'
+            };
+
+            switch(entry.type) {
+                case 'sowing':
+                    icon = `<i class="fas fa-seedling text-blue-500 fa-2x"></i>`;
+                    title = `Planted ${entry.description}`;
+                    details = `<p class="text-sm text-gray-600">Area: ${entry.area} ${entry.unit}</p>`;
+                    break;
+                case 'expense':
+                    icon = `<i class="fas fa-wallet text-red-500 fa-2x"></i>`;
+                    title = `Expense: ${entry.description}`;
+                    amountDisplay = `<span class="font-bold text-lg text-red-700">-${entry.amount.toLocaleString()} BDT</span>`;
+                    details = ``;
+                    break;
+                case 'harvest':
+                    icon = `<i class="fas fa-tractor text-green-500 fa-2x"></i>`;
+                    title = `Harvested ${entry.description}`;
+                    details = `<p class="text-sm text-gray-600">Quantity: ${entry.quantity} ${entry.unit}</p>`;
+                    amountDisplay = `<span class="font-bold text-lg text-green-700">+${entry.amount.toLocaleString()} BDT</span>`;
+                    break;
+            }
+            
+            card.className = `p-4 bg-white rounded-lg shadow-sm border-l-4 ${colors[entry.type]} flex items-start gap-4`;
+            card.innerHTML = `
+                <div class="flex-shrink-0">${icon}</div>
+                <div class="flex-grow">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-gray-800">${title}</h3>
+                        ${amountDisplay}
+                    </div>
+                    <p class="text-sm text-gray-500">${new Date(entry.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric'})}</p>
+                    ${details}
+                </div>
+                 <button onclick="deleteEntry('${id}')" class="text-gray-400 hover:text-red-500 transition-colors">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            diaryLog.appendChild(card);
+        }
+
+        function updateDashboard(income, expenses) {
+            const net = income - expenses;
+            totalIncomeEl.textContent = `${income.toLocaleString()} BDT`;
+            totalExpensesEl.textContent = `${expenses.toLocaleString()} BDT`;
+            netProfitEl.textContent = `${net.toLocaleString()} BDT`;
+
+            if (net >= 0) {
+                netProfitEl.classList.remove('text-red-400');
+                netProfitEl.classList.add('text-green-400');
+            } else {
+                netProfitEl.classList.remove('text-green-400');
+                netProfitEl.classList.add('text-red-400');
+            }
+            updateChart(income, expenses);
+        }
+
+        function updateChart(income, expenses) {
+            const ctx = document.getElementById('profit-loss-chart').getContext('2d');
+            if (profitLossChart) {
+                profitLossChart.data.datasets[0].data = [income, expenses];
+                profitLossChart.update();
+            } else {
+                profitLossChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Total Income', 'Total Expenses'],
+                        datasets: [{
+                            label: 'Amount (BDT)',
+                            data: [income, expenses],
+                            backgroundColor: ['#22c55e', '#ef4444'],
+                            borderColor: ['#ffffff'],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
